@@ -1,0 +1,34 @@
+* About
+
+  This repository is based on [[https://github.com/ingbyr/GUI-YouGet][GUI-YouGet]], written by [[https://github.com/ingbyr][@ingbyr]].
+
+  All my work is splitting *GUI-YouGet* into 2 parts:
+
++ gui
+
+  pyqt code
+
++ you-get
+  
+  https://github.com/soimort/you-get
+
+
+  This project use *Bash* and many *gnu utils* (awk, sed ...)
+
+  Only tested under linux
+
+* How to use
+
+#+BEGIN_SRC sh
+  # you may need to install pyqt and socks
+  # sudo apt-get install python3-pyqt5 python3-socks
+  $ ./loader 
+  Usage: ./loader [command]
+  command support ['start', 'update']
+#+END_SRC
+
+* Known bugs
+
++ Downloading progress dialog may be freezed for a while
+
++ Proxy settings may not work

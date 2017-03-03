@@ -1,0 +1,151 @@
+#!/bin/bash
+
+SC_PATH="."
+LOG_TMP=""
+LOG_PATH=""
+COMMON_TMP=""
+COMMON_PATH=""
+YOUGET_LIB_PATH=""
+YOUGET_APP_PATH=""
+YOUGET_HASHFILE=""
+PY_ENTRY=""
+
+if [ $# -ne 1 ]
+then
+    echo "Usage: $0 [command]"
+    echo "command support ['start', 'update']"
+    exit
+fi
+
+cmd=$1
+
+function get_paths() {
+    realscript=$(readlink ${BASH_SOURCE})
+    if [ "$realscript" = "" ]
+    then
+        realscript=$(ls -l ${BASH_SOURCE} | awk '{print $9}')
+    fi
+
+    SC_PATH=${realscript%/*}
+    if [ "${SC_PATH}" = "." ]
+    then
+        SC_PATH=${PWD}
+    fi
+
+    LOG_TMP="${SC_PATH}/app/you_get/util/log.tmp"
+    LOG_PATH="${SC_PATH}/app/you_get/util/log.py"
+    COMMON_TMP="${SC_PATH}/app/you_get/common.tmp"
+    COMMON_PATH="${SC_PATH}/app/you_get/common.py"
+    YOUGET_LIB_PATH="${SC_PATH}/you-get"
+    YOUGET_APP_PATH="${SC_PATH}/app/you_get"
+    YOUGET_HASHFILE="${SC_PATH}/app/you_get/.hash_youget"
+    PY_ENTRY="${SC_PATH}/gui-youget"
+}
+
+function patch() {
+    echo "patching files ..."
+
+    cd "${YOUGET_APP_PATH}" || exit
+    rm __main__.py 
+    echo '#!/usr/bin/env python' > __init__.py
+
+    while read -r line
+    do
+        sed -i 's/print/print_gui/g' "${line}"
+    done< <(find . -name "*.py")
+    cd - || exit
+
+    sed -i '2s/\(.*\)/\1\nfrom app.util.status import print_gui, set_percent, set_speed, get_stop_thread/g' "${COMMON_PATH}"
+
+    sed -e ':a;N;$!ba;s/\n/#t#/g;s/def /@@def /g' "${COMMON_PATH}"> "${COMMON_TMP}"
+
+    sed -i 's/def print_gui_more_compatible[^@]*#t#@@def/def print_gui_more_compatible(*args, **kwargs):#t#    print_gui(*args, **kwargs)#t#@@def/g' "${COMMON_TMP}"
+    sed -i 's/def url_save\([^@]*\)buffer = response.read(1024 \* 256)/def url_save\1buffer = response.read(1024 \* 256)#t#                if get_stop_thread():#t#                    return/g' "${COMMON_TMP}"
+    sed -i 's/\(def update[^@]*percent = 100\)\([^@]*\)/\1#t#        set_percent(percent)#t#    /g' "${COMMON_TMP}"
+    sed -i 's/\(def update_received[^@]*\)\(self.last_updated = time.time()\)/\1#t#        set_speed(self.speed)#t#        \2/g' "${COMMON_TMP}"
+    sed -i 's/\(class PiecesProgressBar[^@]*@@def __init__[^#@]*\)/\1#t#        set_speed("unknown file size")/g' "${COMMON_TMP}"
+    sed -i 's/\(def script_main[^@]*:\)/\1#t#    pass/g' "${COMMON_TMP}"
+    sed -i 's/#t#/\n/g;s/@@def /def /g' "${COMMON_TMP}"
+    mv "${COMMON_TMP}" "${COMMON_PATH}"
+
+    sed -e ':a;N;$!ba;s/\n/#t#/g;s/def /@@def /g' "${LOG_PATH}" > "${LOG_TMP}"
+    sed -i 's/def sprint_gui[^@]*#t#@@def/def sprint_gui(text, *colors):#t#    return "{content}".format(";".join([str(color) for color in colors]), RESET, content=text)#t#@@def/g;s/#t#/\n/g;s/@@def /def /g' "${LOG_TMP}"
+    mv "${LOG_TMP}" "${LOG_PATH}"
+}
+
+function save_hash() {
+    cd "${YOUGET_LIB_PATH}" || exit
+    git rev-parse HEAD > "${YOUGET_HASHFILE}"
+}
+
+function get_hash() {
+    cat "${YOUGET_HASHFILE}"
+}
+
+function init_you_get() {
+    if [ ! -d "${YOUGET_LIB_PATH}" ]
+    then
+        git clone https://github.com/soimort/you-get/
+    fi
+
+    if [ ! -d "${YOUGET_APP_PATH}" ]
+    then
+        cp -r "${YOUGET_LIB_PATH}/src/you_get" "${YOUGET_APP_PATH}"
+        patch
+        save_hash
+    fi
+}
+
+function startapp() {
+    init_you_get
+    python3 "${PY_ENTRY}"
+}
+
+function updatelib() {
+    if [ ! -d "${YOUGET_LIB_PATH}" ]
+    then
+        echo "try $0 start firstly"
+        exit
+    fi
+
+    echo "updating you-get lib ..."
+
+    cd "${YOUGET_LIB_PATH}" || exit
+    git checkout .
+    git pull
+
+    h1=$(git rev-parse HEAD)
+    h2=""
+    if [ -f "${YOUGET_HASHFILE}" ]
+    then
+        h2=$(get_hash)
+    fi
+
+    if [ "${h1}" != "${h2}" ]
+    then
+        rm -rf "${YOUGET_APP_PATH}"
+        init_you_get
+        echo "updating you-get lib done."
+    else
+        echo "you-get lib is up to date."
+    fi
+}
+
+function main() {
+    get_paths
+
+    case "$cmd" in
+        "start")
+        startapp
+        ;;
+        "update")
+        updatelib
+        ;;
+        *)
+        echo "Unsupported command, exit now"
+        exit
+        ;;
+    esac
+}
+
+main
