@@ -71,6 +71,20 @@ function patch() {
     sed -e ':a;N;$!ba;s/\n/#t#/g;s/def /@@def /g' "${LOG_PATH}" > "${LOG_TMP}"
     sed -i 's/def sprint_gui[^@]*#t#@@def/def sprint_gui(text, *colors):#t#    return "{content}".format(";".join([str(color) for color in colors]), RESET, content=text)#t#@@def/g;s/#t#/\n/g;s/@@def /def /g' "${LOG_TMP}"
     mv "${LOG_TMP}" "${LOG_PATH}"
+
+    sed -i '2s/\(.*\)/from app.util.status import print_gui\n\1/g' "${YOUGET_APP_PATH}/json_output.py"
+
+    cd "${YOUGET_APP_PATH}/processor" || exit
+    while read -r line
+    do
+        grep print_gui ${line} | grep import 1>/dev/null 2>&1
+        if [ $? -eq 0 ]
+	then
+	    continue
+	fi
+	sed -i '2s/\(.*\)/from ..common import print_gui_more_compatible as print_gui\n\1/g' ${line}
+    done< <(grep print_gui *.py | awk -F':' '{print $1}' | sort -u)
+    cd - || exit
 }
 
 function save_hash() {
