@@ -1,12 +1,17 @@
 #!/bin/bash
 
-ABSOLUTE_DOWNLOADER_PATH="sd"
 TARGET_FILE="src/you_get/common.py"
 
 function patch() {
-    cmd="\"\"\"${ABSOLUTE_DOWNLOADER_PATH} -O \"%s\" -U \'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36\' %s\"\"\""
-    sed -i "s@\(def url_save(\)\(.*\)@\1\2\n    #third party downloader hack begin\n    cmd=$cmd\n    realCmd=str.format(cmd %(filepath, url))\n    os.system(realCmd)\n    #third party downloader hack end\n@g" ${TARGET_FILE}
-    sed -i "s@\(def url_save_chunked(\)\(.*\)@\1\2\n    #third party downloader hack begin\n    cmd=$cmd\n    realCmd=str.format(cmd %(filepath, url))\n    os.system(realCmd)\n    #third party downloader hack end\n@g" ${TARGET_FILE}
+    IFS=''
+    content=""
+    while read line
+    do
+        content+=${line}"\n"
+    done<template
+
+    sed -i "s@\(def url_save(\)\(.*\)@\1\2\n${content}@g" ${TARGET_FILE}
+    sed -i "s@\(def url_save_chunked(\)\(.*\)@\1\2\n${content}@g" ${TARGET_FILE}
 }
 
 function check_directory() {

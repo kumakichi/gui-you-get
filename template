@@ -1,0 +1,21 @@
+    #third party downloader hack begin
+    up = False
+    for index, item in enumerate(sys.argv):
+        if (item == '-s' or item == '--socks-proxy'):
+            cmd = """/home/kumakichi/bin/sd -O "%s" -x socks5://%s -U 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36' \'%s\'"""
+            realCmd = str.format(cmd % (filepath, sys.argv[index+1], url))
+            up = True
+            break
+        elif (item == '-x' or item == '--http-proxy'):
+            cmd = """/home/kumakichi/bin/sd -O "%s" -x http://%s -U 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36' \'%s\'"""
+            realCmd = str.format(cmd % (filepath, sys.argv[index+1], url))
+            up = True
+            break
+        else:
+            continue
+    if (False == up):
+        cmd = """/home/kumakichi/bin/sd -O "%s" -U 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36' \'%s\'"""
+        realCmd = str.format(cmd % (filepath, url))
+
+    os.system(realCmd)
+    #third party downloader hack end
