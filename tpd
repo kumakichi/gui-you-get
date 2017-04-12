@@ -1,8 +1,14 @@
 #!/bin/bash
 
-TARGET_FILE="src/you_get/common.py"
+TARGET_FILE="you-get/src/you_get/common.py"
 
 function patch() {
+    grep 'third party downloader hack end' you-get/src/you_get/common.py 1>/dev/null 2>&1
+    if [ $? -eq 0 ]
+    then
+        echo "Seems already patched, will exit now~"
+        exit
+    fi
     IFS=''
     content=""
     while read line
