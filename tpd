@@ -3,7 +3,7 @@
 TARGET_FILE="you-get/src/you_get/common.py"
 
 function patch() {
-    grep 'third party downloader hack end' you-get/src/you_get/common.py 1>/dev/null 2>&1
+    grep 'third party downloader hack end' ${TARGET_FILE} 1>/dev/null 2>&1
     if [ $? -eq 0 ]
     then
         echo "Seems already patched, will exit now~"
@@ -16,8 +16,11 @@ function patch() {
         content+=${line}"\n"
     done<template
 
-    sed -i "s@\(def url_save(\)\(.*\)@\1\2\n${content}@g" ${TARGET_FILE}
-    sed -i "s@\(def url_save_chunked(\)\(.*\)@\1\2\n${content}@g" ${TARGET_FILE}
+    sed -i ':a;N;$!ba;s/\n/xxooxx/g;s/\(def url_save(\)\([^)]*):\)/\1\2\nCONTENT_DATA/g' ${TARGET_FILE}
+    sed -i "s@CONTENT_DATA@${content}@g;s@xxooxx@\n@g" ${TARGET_FILE}
+
+    sed -i ':a;N;$!ba;s/\n/xxooxx/g;s/\(def url_save_chunked(\)\([^)]*):\)/\1\2\nCONTENT_DATA/g' ${TARGET_FILE}
+    sed -i "s@CONTENT_DATA@${content}@g;s@xxooxx@\n@g" ${TARGET_FILE}
 }
 
 function check_directory() {
